@@ -3,8 +3,9 @@
 #include "DHT.h"
 
 // Informações da rede Wi-Fi
-const char* ssid = "************"; // NOME DA REDE WIFI
-const char* password = "************"; // SENHA DA REDE WIFI
+// const char* ssid = "************"; // NOME DA REDE WIFI
+// const char* password = "************"; // SENHA DA REDE WIFI
+
 const char* serverAddress = "https://api-agromonitor-production.up.railway.app/postData"; // Endereço da API
 
 // Pino de dados do sensor DHT11
@@ -26,6 +27,9 @@ void setup() {
   dht.begin();
 }
 
+float previousTemperature = 0;
+float previousHumidity = 0;
+
 void loop() {
   float temperature = dht.readTemperature();
   float humidity = dht.readHumidity();
@@ -36,23 +40,27 @@ void loop() {
     return;
   }
 
-  HTTPClient http;
-
-  http.begin(serverAddress);
-
-  String postData = "temperature=" + String(temperature) + "&humidity=" + String(humidity);
-
-  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-
-  int httpResponseCode = http.POST(postData);
-
-  if (httpResponseCode != 200) {
-    Serial.println("Falha ao enviar os dados.");
-    delay(2500);
-    return;
+  if (temperature != previousTemperature || humidity != previousHumidity) {
+    HTTPClient http;
+    http.begin(serverAddress);
+  
+    String postData = "temperature=" + String(temperature) + "&humidity=" + String(humidity);
+  
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  
+    int httpResponseCode = http.POST(postData);
+  
+    if (httpResponseCode != 200) {
+      Serial.println("Falha ao enviar os dados.");
+      delay(2500);
+      return;
+    }
+  
+    http.end();
+  
+    previousTemperature = temperature;
+    previousHumidity = humidity;
   }
-
-  http.end();
-
+  
   delay(2500);
 }
